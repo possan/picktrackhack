@@ -1,0 +1,23 @@
+{
+  "BundleIdentifier" : "picktrack",
+  "BundleType"       : "Application",
+  "BundleVersion"    : "0.0.1",
+  "VendorIdentifier" : "temp",
+  "RequiredInterface": 1,
+  "Dependencies": {
+    "api"      : "1.0.0",
+    "views"    : "1.0.0",
+    "resources": "0.1.0",
+    "util"     : "0.1.0"
+  },
+  "RequiredPermissions": [],
+  "AppName": {
+    "en": "Temp"
+  },
+  "AppDescription": {
+    "en": "Temp"
+  },
+  "SupportedLanguages": [
+    "en"
+  ]
+}
