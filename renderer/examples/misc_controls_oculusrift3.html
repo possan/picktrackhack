@@ -28,7 +28,7 @@
 	</head>
 	<body>
 
-		<div id="info">
+		<div id="info" style="display:none;">
 			<a href="http://threejs.org" target="_blank">three.js</a> - headtracking demo for oculus rift. requires <a href="https://github.com/possan/oculus-rest/" target="_blank">oculus-rest</a> to get headtracking coordinates working.<br />
 			(left click: forward, a/s/w/d/r/f: move, h: hide text, o: toggle filter)
 		</div>
@@ -3548,8 +3548,8 @@
 
 			var camera, scene, renderer;
 			var realcamera;
-			var guiVisible = true;
-			var useFilter = false;
+			var guiVisible = false;
+			var useFilter = true;
 
 			var mesh, effect, controls, oculuscontrol;
 
@@ -3558,12 +3558,15 @@
 			var meshparent2 = [];
 
 			var handroot;
-			var hand1, handbase1;
-			var hand2, handbase2;
+			var hand1, hand2, handbase1;
+			var hand3, hand4, handbase2;
+
+      var aim_center;
+      var aim_vector;
 
       var lastTrackUri = '';
 
-			var cols = 30;
+			var cols = 15;
 			var rows = 7;
 			var tot = cols * rows;
 			var clock = new THREE.Clock();
@@ -3582,8 +3585,8 @@
 				camera = new THREE.PerspectiveCamera( 90, window.innerWidth / window.innerHeight, 1, 5000 );
 				camera.useQuaternion = true;
 				camera.position.x = 0;
-				camera.position.z = -500;
-				camera.position.y = -100;
+				camera.position.z = 150;
+				camera.position.y = 60;
 				camera.lookAt(new THREE.Vector3(0,0,0));
 
 				scene = new THREE.Scene();
@@ -3592,8 +3595,8 @@
 				effect.setSize( window.innerWidth, window.innerHeight );
 
 				controls = new THREE.FirstPersonControls( camera );
-				controls.movementSpeed = 24000;
-				controls.lookSpeed = 13.0;
+				controls.movementSpeed = 0;
+				controls.lookSpeed = 1.0;
 				controls.lookVertical = true;
 
 				oculuscontrol = new THREE.OculusControls( camera );
@@ -3601,8 +3604,8 @@
 				document.body.appendChild( renderer.domElement );
 
 				var	hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
-				hemiLight.color.setHSL( 0.6, 1, 1.0 );
-				hemiLight.groundColor.setHSL( 0.095, 1, 1.25 );
+				hemiLight.color.setHSL( 0.6, 0, 2.0 );
+				hemiLight.groundColor.setHSL( 0.095, 0, 1.25 );
 				hemiLight.position.set( 0, 500, 0 );
 				scene.add( hemiLight );
 
@@ -3612,9 +3615,9 @@
 
 				for (var i=0; i<tot; i++) {
 
-					var d = dataset[i % 23];
+					var d = dataset[i % 66];
 
-          var url = 'http://127.0.0.1:8001/album/' + (d.albumUri.split(':')[2]);
+          var url = 'http://127.0.0.1:8001/album/' + (d.albumUri.split(':')[2]) + '.jpg';
 
           if (typeof(matcache[url]) == 'undefined') {
             var texture = THREE.ImageUtils.loadTexture(url);
@@ -3637,7 +3640,7 @@
 					meshparent[i].position.x = -50;
 					meshparent2[i].add( meshparent[i] );
 
-					var geometry = new THREE.CubeGeometry( 200, -200, 1 );
+					var geometry = new THREE.CubeGeometry( 300, -300, 1 );
 
 					mesh = new THREE.Mesh( geometry, matcache[url] );
           mesh.dataset = d;
@@ -3651,7 +3654,8 @@
 				handroot = new THREE.Object3D();
 				scene.add(handroot);
 
-				var handgeometry = new THREE.CubeGeometry( 100, 50, 100 );
+				var handgeometry = new THREE.CubeGeometry( 70, 20, 100 );
+        var handgeometry2 = new THREE.CubeGeometry( 20, 20, 120 );
 
         var material = new THREE.MeshPhongMaterial({
           color: 0xffffff,
@@ -3662,12 +3666,18 @@
 
 				handbase1 = new THREE.Object3D();
 				hand1 = new THREE.Mesh( handgeometry, material );
+        hand2 = new THREE.Mesh( handgeometry2, material );
+        hand2.position.z = -20;
 				handbase1.add(hand1);
+        handbase1.add(hand2);
 				handroot.add(handbase1);
 
 				handbase2 = new THREE.Object3D();
-				hand2 = new THREE.Mesh( handgeometry, material );
-				handbase2.add(hand2);
+				hand3 = new THREE.Mesh( handgeometry, material );
+				hand4 = new THREE.Mesh( handgeometry2, material );
+        hand4.position.z = -20;
+        handbase2.add(hand3);
+        handbase2.add(hand4);
 				handroot.add(handbase2);
 
 				oculuscontrol.connect();
@@ -3688,7 +3698,7 @@
 					guiVisible = !guiVisible;
 					document.getElementById('info').style.display = guiVisible ? "block" : "none";
 				}
-				if (event.keyCode === 79) { // H
+				if (event.keyCode === 79) { // O
 					useFilter = !useFilter;
 					renderer.setSize( window.innerWidth, window.innerHeight );
 				}
@@ -3703,37 +3713,37 @@
 			function animate() {
 				requestAnimationFrame( animate );
 
-        var vector = new THREE.Vector3(0, 0, 0.5);
-        var projector = new THREE.Projector();
-        projector.unprojectVector( vector, camera );
-        vector = vector.sub( camera.position ).normalize();
-        // controlssole.log(vector.x, vector.y, vector.z);
-        //        var ray = new THREE.Ray( camera.position, vector);
-        var ray = new THREE.Raycaster(camera.position, vector);//vector.sub(camera.position).normalize() );
+        var t = clock.getElapsedTime();
 
-        var intersects = ray.intersectObjects( scene.children, true );
+        camera.position.x = 350 * Math.cos(t / 1.5);
+        camera.position.z = 350 * Math.cos(t / 3.0);
+        camera.position.y = 350 * Math.sin(t / 2.5);
+
+        var ray = new THREE.Raycaster(aim_center, aim_vector);
+        var intersects = ray.intersectObjects( meshes, true );
 
         lastTrackUri = '';
+        var hit = null;
         if (intersects.length > 0) {
-          // console.log(intersects[0]);
+          // for(var i=0; i<intersects[0].length; i++) {
           if (intersects[0].object.dataset) {
-            // console.log('object dataset', intersects[0].object.dataset);
-            intersects[0].object.scale.x = 2.0;
-            intersects[0].object.scale.y = 2.0;
-            lastTrackUri = intersects[0].object.dataset.track;
+            hit = intersects[0];
+            hit.object.scale.x = 2.0;
+            hit.object.scale.y = 2.0;
+            lastTrackUri = hit.object.dataset.track;
+          //  continue;
+          //  }
           }
         }
-
-				var t = clock.getElapsedTime();
 
 				for (var i=0; i<meshes.length; i++) {
 					var c = Math.floor(i % cols);
 					var r = Math.floor(i / cols);
 					meshparent2[i].rotation.y = (c * 3.142 * 2 / cols);
-          meshparent[i].rotation.x = ((r+10) * 3.142 * 2 / (rows+20));
+          meshparent[i].rotation.x = ((r+7) * 3.142 * 2 / (rows+13));
 					meshparent[i].rotation.z = 1.0 * perlin.noise(c/2.0,0,t);
-          meshes[i].position.z = 1400 - 750 * perlin.noise(c*8/cols,r*8/rows,t/5.0);
-				  meshes[i].rotation.y = 1.0 * perlin.noise(c/3.0,t/2.0,0);
+          meshes[i].position.z = 1400 - 750 * perlin.noise(c*8/cols, r*8/rows, t/5.0);
+				  meshes[i].rotation.y = 1.0 * perlin.noise(c/3.0, t/2.0, 0);
         }
 
 				controls.update( clock.getDelta() );
@@ -3747,55 +3757,80 @@
 				handroot.position = camera.position;
 				handroot.rotation = camera.rotation;
 				handroot.quaternion = camera.quaternion;
-				// handroot.matrix = m2;//handroot.matrix.multiply(m2);//quaternion.copy(camera.quaternion);
 
-				if (useFilter)
-					effect.render( scene, camera );
-				else
-					renderer.render( scene, camera );
+        renderer.render( scene, camera );
+				if (useFilter) effect.render( scene, camera );
 
-
-
-
-        if (intersects.length > 0) {
-          if (intersects[0].object.dataset) {
-            intersects[0].object.scale.x = 1.0;
-            intersects[0].object.scale.y = 1.0;
+        if (hit) {
+          if (hit.object.dataset) {
+            hit.object.scale.x = 1.0;
+            hit.object.scale.y = 1.0;
           }
         }
-
-
 			}
 
 			var targethands = [handbase1, handbase2];
 
 			resethands = function() {
-				targethands[0].position.x = -200;
-				targethands[0].position.y = -100;
-				targethands[0].position.z = -350;
 
-				targethands[1].position.x = 200;
-				targethands[1].position.y = -100;
-				targethands[1].position.z = -350;
+        var m = new THREE.Matrix4();
+        m.setPosition(new THREE.Vector3(200, -100, -99999));
+        targethands[0].matrix = m;
+        targethands[0].matrixAutoUpdate = false;
+        targethands[0].matrixWorldNeedsUpdate = true;
+
+        var m = new THREE.Matrix4();
+        m.setPosition(new THREE.Vector3(-200, -100, -99999));
+        targethands[1].matrix = m;
+        targethands[1].matrixAutoUpdate = false;
+        targethands[1].matrixWorldNeedsUpdate = true;
+
+        aim_center = camera.position;
+        var vector = new THREE.Vector3(0, 0, 0.5);
+        var projector = new THREE.Projector();
+        projector.unprojectVector( vector, camera );
+        aim_vector = vector.sub( camera.position ).normalize();
 			}
 
 			resethands();
 
+      var framecounter = 0;
+
 			Leap.loop(function(frame) {
 				var hands = frame.hands || [];
-				console.log('hands', hands.length);
+
+				// console.log('hands', hands.length);
 				resethands();
+
 				for (var h=0; h<Math.min(hands.length, targethands.length); h++) {
 					var hand = hands[h];
 					var targethand = targethands[h];
+          targethand.visible = true;
 					var p = new THREE.Vector3(
 						hand.palmPosition[0] / 1,
 						hand.palmPosition[1] / 1 - 200,
 						hand.palmPosition[2] / 1 - 350);
 					var m = new THREE.Matrix4();
-					m.lookAt(
+					var dir = new THREE.Vector3(hand.direction[0], hand.direction[1], hand.direction[2]);
+          if (h == 0 && ((framecounter ++) % 30) == 0) {
+            //           console.log(hand);
+
+            var b = camera.position.clone();
+            b.applyMatrix4(camera.matrix); // new THREE.Vector3
+
+            var a = dir.clone();
+            b.applyMatrix4(camera.matrix);
+            //       console.log(b, a);
+
+            //           aim_center = a; // p.sub(dir.multiplyScalar(100)).add(camera.position);
+            //         aim_vector = b.normalize();
+
+          }
+
+
+          m.lookAt(
 						new THREE.Vector3(0, 0, 0),
-						new THREE.Vector3(hand.direction[0], hand.direction[1], hand.direction[2]),
+            dir,
 						new THREE.Vector3(hand.palmNormal[0], hand.palmNormal[1], hand.palmNormal[2])
 					);
 					m.setPosition(p);
